@@ -34,6 +34,8 @@ static char UIViewKeyboardDelegate;
 
 @end
 
+typedef id(^WeakAttachment)();
+
 @implementation UIView (DAKeyboardControl)
 @dynamic keyboardTriggerOffset;
 
@@ -389,6 +391,13 @@ static char UIViewKeyboardDelegate;
                 shouldRecede = YES;
             }
             
+            if ([self.keyboardControlDelegate respondsToSelector:@selector(shouldPreventRecedingKeyboardFromPanGesture:)]) {
+                if ([self.keyboardControlDelegate shouldPreventRecedingKeyboardFromPanGesture:gesture])
+                {
+                    shouldRecede = NO;
+                }
+            }
+            
             // If the keyboard has only been pushed down 44 pixels or has been
             // panned upwards let it pop back up; otherwise, let it drop down
             CGRect newKeyboardViewFrame = self.keyboardActiveView.frame;
@@ -529,19 +538,22 @@ static char UIViewKeyboardDelegate;
     [self didChangeValueForKey:@"keyboardTriggerOffset"];
 }
 
+- (id<DAKeyboardControlDelegate>)keyboardControlDelegate
+{
+    WeakAttachment attachment = objc_getAssociatedObject(self, &UIViewKeyboardDelegate);
+    return attachment ? attachment() : nil;
+}
+
 - (void)setKeyboardControlDelegate:(id<DAKeyboardControlDelegate>)keyboardControlDelegate
 {
+    __weak id<DAKeyboardControlDelegate> weakKeyboardControlDelegate = keyboardControlDelegate;
+    
     [self willChangeValueForKey:@"keyboardControlDelegate"];
     objc_setAssociatedObject(self,
                              &UIViewKeyboardDelegate,
-                             keyboardControlDelegate,
-                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                             ^id { return weakKeyboardControlDelegate; },
+                             OBJC_ASSOCIATION_COPY_NONATOMIC);
     [self willChangeValueForKey:@"keyboardControlDelegate"];
-}
-
-- (id<DAKeyboardControlDelegate>)keyboardControlDelegate
-{
-    return objc_getAssociatedObject(self, &UIViewKeyboardDelegate);
 }
 
 - (BOOL)isPanning
@@ -562,16 +574,19 @@ static char UIViewKeyboardDelegate;
 
 - (UIResponder *)keyboardActiveInput
 {
-    return objc_getAssociatedObject(self, &UIViewKeyboardActiveInput);
+    WeakAttachment attachment = objc_getAssociatedObject(self, &UIViewKeyboardActiveInput);
+    return attachment ? attachment() : nil;
 }
 
 - (void)setKeyboardActiveInput:(UIResponder *)keyboardActiveInput
 {
+    __weak UIResponder *weakKeyboardActiveInput = keyboardActiveInput;
+    
     [self willChangeValueForKey:@"keyboardActiveInput"];
     objc_setAssociatedObject(self,
                              &UIViewKeyboardActiveInput,
-                             keyboardActiveInput,
-                             OBJC_ASSOCIATION_ASSIGN);
+                             ^id { return weakKeyboardActiveInput; },
+                             OBJC_ASSOCIATION_COPY_NONATOMIC);
     [self didChangeValueForKey:@"keyboardActiveInput"];
 }
 
