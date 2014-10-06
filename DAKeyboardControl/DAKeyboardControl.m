@@ -222,8 +222,10 @@ typedef id(^WeakAttachment)();
 - (void)inputKeyboardDidShow
 {
     // Grab the keyboard view
-    self.keyboardActiveView = self.keyboardActiveInput.inputAccessoryView.superview;
-    self.keyboardActiveView.hidden = NO;
+   if(self.keyboardActiveInput.inputAccessoryView.superview){
+        self.keyboardActiveView = self.keyboardActiveInput.inputAccessoryView.superview;
+        self.keyboardActiveView.hidden = NO;
+    }
     
     // If the active keyboard view could not be found (UITextViews...), try again
     if (!self.keyboardActiveView) {
